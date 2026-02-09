@@ -1,13 +1,11 @@
 services:
   inventory-app:
-    build: .
+    image: ghcr.io/florianwenzelworms/inventar-neu:latest
     container_name: it-inventur
     restart: always
     ports:
       - "8000:8000"
     volumes:
-      # Mapped den Ordner 'data' auf dem Host in den Container
       - ./data:/data
     environment:
-      # Optional: Setzt Zeitzone korrekt
       - TZ=Europe/Berlin
