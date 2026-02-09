@@ -43,6 +43,7 @@ class InventarEintrag(SQLModel, table=True):
     geraete_id: str
     gebaeude: str
     raum: str
+    archiviert: bool = Field(default=False)
 
 
 # --- PYDANTIC MODELLE ---
@@ -156,6 +157,48 @@ async def export_csv(username: str = Depends(get_current_username)):
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=inventur_export.csv"
     return response
+
+
+@app.post("/admin/toggle-archive/{item_id}")
+async def toggle_archive(item_id: int, username: str = Depends(get_current_username)):
+    with Session(engine) as session:
+        item = session.get(InventarEintrag, item_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+        # Status umkehren (True -> False, False -> True)
+        item.archiviert = not item.archiviert
+        session.add(item)
+        session.commit()
+
+        status_text = "archiviert" if item.archiviert else "wiederhergestellt"
+        return {"message": f"Eintrag {item.geraete_id} wurde {status_text}."}
+
+
+@app.post("/admin/toggle-submission/{sub_id}")
+async def toggle_submission_group(sub_id: str, username: str = Depends(get_current_username)):
+    with Session(engine) as session:
+        # Alle Items dieser Submission holen
+        statement = select(InventarEintrag).where(InventarEintrag.submission_id == sub_id)
+        items = session.exec(statement).all()
+
+        if not items:
+            raise HTTPException(status_code=404, detail="Submission not found")
+
+        # Logik: Sind ALLE bereits archiviert?
+        all_archived = all(item.archiviert for item in items)
+
+        # Wenn alle archiviert sind -> Wiederherstellen (False)
+        # Wenn manche oder keine archiviert sind -> Alle Archivieren (True)
+        new_state = not all_archived
+
+        for item in items:
+            item.archiviert = new_state
+
+        session.commit()
+
+        action = "wiederhergestellt" if not new_state else "archiviert"
+        return {"message": f"Komplette Einreichung ({len(items)} Items) wurde {action}."}
 
 
 if __name__ == "__main__":

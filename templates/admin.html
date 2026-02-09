@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <title>Admin - Inventur</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         .search-box { max-width: 300px; }
+        .row-archived { opacity: 0.6; background-color: #f2f2f2; color: #6c757d; }
     </style>
 </head>
 <body class="bg-light p-4">
@@ -14,21 +16,26 @@
         <h2>🛡️ Admin Dashboard</h2>
         <div>
             <button onclick="exportToCSV()" class="btn btn-success">
-                💾 Aktuelle Ansicht als .csv
+                💾 Ansicht als .csv
             </button>
             <a href="/" class="btn btn-outline-secondary ms-2">Zum Formular</a>
         </div>
     </div>
 
     <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single-pane" type="button">
-                📦 Einzelansicht (Nach Submit)
+                📦 Einzelansicht
             </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link" id="total-tab" data-bs-toggle="tab" data-bs-target="#total-pane" type="button">
-                📋 Gesamtansicht (Alle)
+                📋 Gesamtliste (Aktiv)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link text-danger" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive-pane" type="button">
+                🗑️ Archiv <span id="archiveBadge" class="badge bg-danger rounded-pill">0</span>
             </button>
         </li>
     </ul>
@@ -38,202 +45,320 @@
         <div class="tab-pane fade show active bg-white p-3 border border-top-0" id="single-pane">
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Wähle eine Einreichung:</label>
+                    <label class="form-label">Offene Einreichung wählen:</label>
                     <select id="submissionSelect" class="form-select">
                         <option value="">Bitte wählen...</option>
-                        </select>
+                    </select>
                 </div>
                 <div class="col-md-6 text-end">
-                    <label class="form-label">&nbsp;</label>
-                    <input type="text" id="searchSingle" class="form-control search-box float-end" placeholder="🔍 Diese Liste filtern...">
+                    <input type="text" id="searchSingle" class="form-control search-box float-end" placeholder="🔍 Filtern...">
                 </div>
             </div>
 
-            <div id="singleInfo" class="alert alert-info d-none">
-                </div>
+            <div id="singleInfo" class="alert alert-light border d-none d-flex justify-content-between align-items-center">
+                <div id="singleInfoText"></div>
+                <button id="groupArchiveBtn" class="btn btn-outline-danger">
+                    <i class="bi bi-archive-fill"></i> Alles archivieren
+                </button>
+            </div>
 
-            <table class="table table-striped table-hover" id="tableSingle">
+            <table class="table table-hover" id="tableSingle">
                 <thead class="table-dark">
-                    <tr><th>Geräte-ID</th><th>Gebäude</th><th>Raum</th></tr>
+                    <tr><th>Geräte-ID</th><th>Gebäude</th><th>Raum</th><th>Status</th><th>Aktion</th></tr>
                 </thead>
                 <tbody id="singleTableBody">
-                    <tr><td colspan="3" class="text-center text-muted">Wähle einen Eintrag aus dem Menü.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted">Wähle einen Eintrag aus dem Menü.</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div class="tab-pane fade bg-white p-3 border border-top-0" id="total-pane">
             <div class="mb-3 d-flex justify-content-end">
-                <input type="text" id="searchTotal" class="form-control search-box" placeholder="🔍 Alles durchsuchen...">
+                <input type="text" id="searchTotal" class="form-control search-box" placeholder="🔍 Suchen...">
             </div>
             <table class="table table-sm table-striped table-hover" id="tableTotal">
                 <thead class="table-dark">
                     <tr>
-                        <th>Datum</th>
-                        <th>Verantwortlicher</th>
-                        <th>Abteilung</th>
-                        <th>Geräte-ID</th>
-                        <th>Gebäude</th>
-                        <th>Raum</th>
+                        <th>Datum</th><th>Verantwortlicher</th><th>Geräte-ID</th>
+                        <th>Gebäude</th><th>Raum</th><th>Aktion</th>
                     </tr>
                 </thead>
-                <tbody id="totalTableBody">
-                    </tbody>
+                <tbody id="totalTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane fade bg-white p-3 border border-top-0" id="archive-pane">
+
+            <div class="card mb-4 border-danger bg-light">
+                <div class="card-body">
+                    <h6 class="text-danger"><i class="bi bi-arrow-counterclockwise"></i> Ganze Einreichung wiederherstellen</h6>
+                    <div class="input-group">
+                        <select id="archiveGroupSelect" class="form-select border-danger">
+                            <option value="">Wähle eine archivierte Gruppe...</option>
+                        </select>
+                        <button onclick="restoreSelectedGroup()" class="btn btn-danger">Wiederherstellen</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between mb-3">
+                <h6 class="mt-2 text-muted">Einzelne Positionen im Archiv:</h6>
+                <input type="text" id="searchArchive" class="form-control search-box" placeholder="🔍 Im Archiv suchen...">
+            </div>
+
+            <table class="table table-sm table-striped table-hover text-muted" id="tableArchive">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Datum</th><th>Verantwortlicher</th><th>Geräte-ID</th>
+                        <th>Gebäude</th><th>Raum</th><th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="archiveTableBody"></tbody>
             </table>
         </div>
     </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 11"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         let allData = [];
+        let activeData = [];
+        let archivedData = [];
 
-        // Daten laden
-        async function loadData() {
-            const res = await fetch('/admin/data');
-            if (res.status === 401) {
-                alert("Nicht autorisiert!");
-                window.location.reload();
-                return;
-            }
-            allData = await res.json();
-            initTotalView();
-            initSingleView();
+        // --- TOAST ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const bgClass = type === 'error' ? 'text-bg-danger' : type === 'info' ? 'text-bg-primary' : 'text-bg-success';
+            const toastHtml = `<div class="toast align-items-center ${bgClass} border-0"><div class="d-flex"><div class="toast-body">${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = toastHtml;
+            const newToast = wrapper.firstElementChild;
+            container.appendChild(newToast);
+            const bsToast = new bootstrap.Toast(newToast, { delay: 3000 });
+            bsToast.show();
+            newToast.addEventListener('hidden.bs.toast', () => newToast.remove());
         }
 
-        // --- EXPORT FUNKTION (NEU) ---
-        function exportToCSV() {
-            // 1. Prüfen welcher Tab aktiv ist
-            const isTotalTab = document.getElementById('total-tab').classList.contains('active');
-            const tableId = isTotalTab ? 'tableTotal' : 'tableSingle';
-            const table = document.getElementById(tableId);
+        // --- LOAD ---
+        async function loadData() {
+            const res = await fetch('/admin/data');
+            if (res.status === 401) { alert("Auth Error"); return; }
+            allData = await res.json();
 
-            let csvContent = "data:text/csv;charset=utf-8,";
+            activeData = allData.filter(i => !i.archiviert);
+            archivedData = allData.filter(i => i.archiviert);
 
-            // 2. Header holen
-            const headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText);
-            csvContent += headers.join(";") + "\r\n";
+            document.getElementById('archiveBadge').innerText = archivedData.length;
 
-            // 3. Sichtbare Zeilen iterieren
-            const rows = table.querySelectorAll("tbody tr");
-            let count = 0;
+            initTotalView();
+            initSingleView();
+            initArchiveView();
+        }
 
-            rows.forEach(row => {
-                // Nur exportieren, wenn nicht ausgeblendet (durch Suche)
-                if (row.style.display !== 'none') {
-                    const cols = Array.from(row.querySelectorAll("td")).map(td => {
-                        // Text bereinigen (Semikolons entfernen, damit CSV nicht bricht)
-                        return td.innerText.replace(/;/g, ",");
-                    });
+        // --- ACTIONS ---
+        async function toggleArchive(id) {
+            try {
+                const res = await fetch(`/admin/toggle-archive/${id}`, { method: 'POST' });
+                const json = await res.json();
+                if(res.ok) { showToast(json.message, 'info'); loadData(); }
+            } catch(e) { showToast("Error", 'error'); }
+        }
 
-                    // Leere Platzhalter-Zeilen ignorieren
-                    if(cols.length > 1 || (cols.length === 1 && cols[0] !== "Wähle einen Eintrag aus dem Menü.")) {
-                        csvContent += cols.join(";") + "\r\n";
-                        count++;
-                    }
-                }
+        async function restoreSelectedGroup() {
+            const subId = document.getElementById('archiveGroupSelect').value;
+            if(!subId) { showToast("Bitte eine Gruppe wählen", 'error'); return; }
+            if(!confirm("Ganze Gruppe aus dem Archiv holen?")) return;
+
+            try {
+                const res = await fetch(`/admin/toggle-submission/${subId}`, { method: 'POST' });
+                const json = await res.json();
+                if(res.ok) { showToast(json.message, 'success'); loadData(); }
+            } catch(e) { showToast("Error", 'error'); }
+        }
+
+        async function archiveWholeGroup(subId) {
+            if(!confirm("Ganze Einreichung archivieren?")) return;
+            try {
+                const res = await fetch(`/admin/toggle-submission/${subId}`, { method: 'POST' });
+                const json = await res.json();
+                if(res.ok) { showToast(json.message, 'info'); loadData(); }
+            } catch(e) { showToast("Error", 'error'); }
+        }
+
+        // --- VIEW 1: SINGLE (Nur Aktive im Dropdown) ---
+        function initSingleView() {
+            const groups = {};
+            allData.forEach(item => {
+                if(!groups[item.submission_id]) groups[item.submission_id] = { header: item, items: [], allArchived: true };
+                groups[item.submission_id].items.push(item);
+                if(!item.archiviert) groups[item.submission_id].allArchived = false;
             });
 
-            if (count === 0) {
-                alert("Keine Daten zum Exportieren sichtbar!");
+            const select = document.getElementById('submissionSelect');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Bitte wählen...</option>';
+
+            Object.values(groups).sort((a,b) => new Date(b.header.timestamp) - new Date(a.header.timestamp)).forEach(group => {
+                // FILTER: Wenn komplett archiviert -> Nicht ins Dropdown
+                if(group.allArchived) return;
+
+                const opt = document.createElement('option');
+                opt.value = group.header.submission_id;
+                opt.text = `📦 ${new Date(group.header.timestamp).toLocaleString()} - ${group.header.verantwortlicher}`;
+                select.appendChild(opt);
+            });
+
+            // Falls das aktuell ausgewählte Element jetzt archiviert ist (und somit aus dem Dropdown fliegt), Reset
+            // Wir prüfen, ob currentVal noch in den Options existiert
+
+            select.value = currentVal;
+            // Wenn der Wert ungültig ist (weil ausgeblendet), auf Default setzen
+            if(select.value === "" && currentVal !== "") {
+               renderSingleTable(null, groups); // Tabelle leeren
+            }
+
+            select.onchange = (e) => renderSingleTable(e.target.value, groups);
+
+            // Tabelle rendern falls Auswahl noch gültig
+            if(select.value && groups[select.value]) {
+                renderSingleTable(select.value, groups);
+            }
+        }
+
+        function renderSingleTable(subId, groups) {
+            const tbody = document.getElementById('singleTableBody');
+            const infoBox = document.getElementById('singleInfo');
+            const infoText = document.getElementById('singleInfoText');
+            const groupBtn = document.getElementById('groupArchiveBtn');
+
+            if(!subId || !groups[subId]) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Wähle einen Eintrag.</td></tr>';
+                infoBox.classList.add('d-none');
                 return;
             }
 
-            // 4. Download triggern
-            const encodedUri = encodeURI(csvContent);
+            const group = groups[subId];
+            infoText.innerHTML = `<strong>${group.header.verantwortlicher}</strong> (${group.header.abteilung})<br><small>${new Date(group.header.timestamp).toLocaleString()}</small>`;
+            infoBox.classList.remove('d-none');
+
+            // Button Action
+            groupBtn.onclick = () => archiveWholeGroup(subId);
+
+            tbody.innerHTML = '';
+            group.items.forEach(item => {
+                let actionHtml = '';
+                let rowClass = '';
+                let statusBadge = '';
+
+                if(item.archiviert) {
+                    rowClass = 'row-archived';
+                    statusBadge = '<span class="badge bg-secondary">Archiviert</span>';
+                    // Kein Button, da Wiederherstellung nur im Archiv-Tab
+                    actionHtml = '<small class="text-muted"><i class="bi bi-lock"></i></small>';
+                } else {
+                    statusBadge = '<span class="badge bg-success">Aktiv</span>';
+                    actionHtml = `<button onclick="toggleArchive(${item.id})" class="btn btn-sm btn-outline-danger" title="Archivieren"><i class="bi bi-archive"></i></button>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td><strong>${item.geraete_id}</strong></td>
+                        <td>${item.gebaeude}</td>
+                        <td>${item.raum}</td>
+                        <td>${statusBadge}</td>
+                        <td>${actionHtml}</td>
+                    </tr>`;
+            });
+        }
+
+        // --- VIEW 2: TOTAL ---
+        function initTotalView() {
+            const tbody = document.getElementById('totalTableBody');
+            tbody.innerHTML = '';
+            activeData.forEach(row => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small>${new Date(row.timestamp).toLocaleString()}</small></td>
+                        <td>${row.verantwortlicher}</td>
+                        <td><strong>${row.geraete_id}</strong></td>
+                        <td>${row.gebaeude}</td><td>${row.raum}</td>
+                        <td><button onclick="toggleArchive(${row.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-archive"></i></button></td>
+                    </tr>`;
+            });
+        }
+
+        // --- VIEW 3: ARCHIVE ---
+        function initArchiveView() {
+            const archiveGroups = {};
+            archivedData.forEach(item => {
+                if(!archiveGroups[item.submission_id]) archiveGroups[item.submission_id] = item;
+            });
+
+            const select = document.getElementById('archiveGroupSelect');
+            select.innerHTML = '<option value="">Wähle eine archivierte Gruppe...</option>';
+
+            Object.values(archiveGroups).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(header => {
+                const opt = document.createElement('option');
+                opt.value = header.submission_id;
+                opt.text = `${new Date(header.timestamp).toLocaleString()} - ${header.verantwortlicher}`;
+                select.appendChild(opt);
+            });
+
+            const tbody = document.getElementById('archiveTableBody');
+            tbody.innerHTML = '';
+            archivedData.forEach(row => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small>${new Date(row.timestamp).toLocaleString()}</small></td>
+                        <td>${row.verantwortlicher}</td>
+                        <td>${row.geraete_id}</td><td>${row.gebaeude}</td><td>${row.raum}</td>
+                        <td><button onclick="toggleArchive(${row.id})" class="btn btn-sm btn-success"><i class="bi bi-arrow-counterclockwise"></i></button></td>
+                    </tr>`;
+            });
+        }
+
+        // --- EXPORT & SEARCH ---
+        function exportToCSV() {
+            let activeTableId = 'tableTotal';
+            if (document.getElementById('single-tab').classList.contains('active')) activeTableId = 'tableSingle';
+            if (document.getElementById('archive-tab').classList.contains('active')) activeTableId = 'tableArchive';
+            const table = document.getElementById(activeTableId);
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = Array.from(table.querySelectorAll("thead th")).slice(0, -1).map(th => th.innerText);
+            csvContent += headers.join(";") + "\r\n";
+            const rows = table.querySelectorAll("tbody tr");
+            let count = 0;
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const cols = Array.from(row.querySelectorAll("td")).slice(0, -1);
+                    const rowData = cols.map(td => td.innerText.replace(/;/g, ",").replace(/\n/g, " "));
+                    if (rowData.length > 1) { csvContent += rowData.join(";") + "\r\n"; count++; }
+                }
+            });
+            if(count === 0) { showToast("Keine Daten.", 'info'); return; }
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", isTotalTab ? "inventur_gesamt_gefiltert.csv" : "inventur_einzel_gefiltert.csv");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", "inventur_export.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        // --- VIEWS INITIALISIEREN ---
-        function initTotalView() {
-            const tbody = document.getElementById('totalTableBody');
-            tbody.innerHTML = '';
-
-            allData.forEach(row => {
-                const date = new Date(row.timestamp).toLocaleString();
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${date}</td>
-                        <td>${row.verantwortlicher}</td>
-                        <td>${row.abteilung}</td>
-                        <td><strong>${row.geraete_id}</strong></td>
-                        <td>${row.gebaeude}</td>
-                        <td>${row.raum}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        function initSingleView() {
-            const groups = {};
-            allData.forEach(item => {
-                if(!groups[item.submission_id]) {
-                    groups[item.submission_id] = { header: item, items: [] };
-                }
-                groups[item.submission_id].items.push(item);
-            });
-
-            const select = document.getElementById('submissionSelect');
-            Object.values(groups).forEach(group => {
-                const h = group.header;
-                const date = new Date(h.timestamp).toLocaleString();
-                const option = document.createElement('option');
-                option.value = h.submission_id;
-                option.text = `${date} - ${h.verantwortlicher} (${h.abteilung})`;
-                select.appendChild(option);
-            });
-
-            select.addEventListener('change', (e) => {
-                const subId = e.target.value;
-                const tbody = document.getElementById('singleTableBody');
-                const infoBox = document.getElementById('singleInfo');
-
-                if(!subId) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Wähle einen Eintrag aus dem Menü.</td></tr>';
-                    infoBox.classList.add('d-none');
-                    return;
-                }
-
-                const group = groups[subId];
-                infoBox.innerHTML = `
-                    <strong>Eingereicht am:</strong> ${new Date(group.header.timestamp).toLocaleString()} <br>
-                    <strong>Von:</strong> ${group.header.verantwortlicher} (${group.header.abteilung})
-                `;
-                infoBox.classList.remove('d-none');
-
-                tbody.innerHTML = '';
-                group.items.forEach(item => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${item.geraete_id}</strong></td>
-                            <td>${item.gebaeude}</td>
-                            <td>${item.raum}</td>
-                        </tr>
-                    `;
-                });
-            });
-        }
-
-        // --- SUCHFUNKTION ---
         function setupSearch(inputId, tableBodyId) {
             document.getElementById(inputId).addEventListener('keyup', (e) => {
                 const term = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll(`#${tableBodyId} tr`);
-
-                rows.forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    row.style.display = text.includes(term) ? '' : 'none';
+                document.querySelectorAll(`#${tableBodyId} tr`).forEach(row => {
+                    row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
                 });
             });
         }
-
         setupSearch('searchTotal', 'totalTableBody');
         setupSearch('searchSingle', 'singleTableBody');
+        setupSearch('searchArchive', 'archiveTableBody');
 
         window.onload = loadData;
     </script>
