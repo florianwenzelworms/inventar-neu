@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventur Liste</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
+    <style>
+        .ts-wrapper.form-select { padding: 0; border: none; }
+        .ts-control { border-radius: 0; border: 1px solid #dee2e6; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container mt-4 pb-5">
+    <h2 class="mb-4">Geräte-Inventur</h2>
+
+    <div class="card p-3 mb-4 shadow-sm">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Name (Verantwortlicher)</label>
+                <input type="text" id="h_name" class="form-control" placeholder="Max Mustermann">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Abteilung</label>
+                <input type="text" id="h_abteilung" class="form-control" placeholder="z.B. IT / Hauptamt">
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3 shadow-sm">
+        <table class="table align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th style="width: 25%">Geräte-ID</th>
+                <th style="width: 40%">Gebäude (Suche)</th>
+                <th style="width: 30%">Raum</th>
+                <th style="width: 5%"></th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between mt-2">
+            <button onclick="addRow()" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> Zeile hinzufügen (Enter)
+            </button>
+            <button onclick="submitData()" class="btn btn-success px-5">
+                Abschließen & Senden
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+    const buildings = {{ gebaeude_liste | tojson }};
+    const tsInstances = [];
+
+    function addRow() {
+        const tbody = document.getElementById('tableBody');
+
+        // Sticky Logic
+        let lastGeb = "";
+        let lastRaum = "";
+
+        const rows = tbody.querySelectorAll('tr');
+        if (rows.length > 0) {
+            const lastRow = rows[rows.length - 1];
+            lastGeb = lastRow.querySelector('.asset-geb').value;
+            lastRaum = lastRow.querySelector('.asset-raum').value;
+        }
+        if (!lastGeb && buildings.length > 0) lastGeb = buildings[0];
+
+        // Row HTML
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+                <td>
+                    <input type="text" class="form-control asset-id" placeholder="ID..." autofocus>
+                </td>
+                <td>
+                    <select class="asset-geb" placeholder="Gebäude wählen..."></select>
+                </td>
+                <td>
+                    <input type="text" class="form-control asset-raum" placeholder="Raum..." value="${lastRaum}">
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-danger border-0 remove-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+
+        tr.querySelector('.remove-btn').onclick = function() { tr.remove(); };
+        tbody.appendChild(tr);
+
+        // Tom Select Init
+        const selectEl = tr.querySelector('.asset-geb');
+        const optionsList = buildings.map(b => ({value: b, text: b}));
+
+        const ts = new TomSelect(selectEl, {
+            options: optionsList,
+            items: [lastGeb],
+            create: false,
+            maxItems: 1,
+            sortField: { field: "text", direction: "asc" },
+            plugins: ['dropdown_input'],
+        });
+        tsInstances.push(ts);
+
+        setTimeout(() => {
+            const inputs = tr.querySelectorAll('input');
+            if(inputs.length > 0) inputs[0].focus();
+        }, 50);
+    }
+
+    document.getElementById('tableBody').addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('asset-raum') && e.key === 'Enter') {
+            e.preventDefault();
+            addRow();
+        }
+    });
+
+    async function submitData() {
+        const header = {
+            name: document.getElementById('h_name').value,
+            // Bereich entfernt
+            abteilung: document.getElementById('h_abteilung').value
+        };
+
+        if(!header.name || !header.abteilung) {
+            alert("Bitte Name und Abteilung angeben!");
+            return;
+        }
+
+        const rows = document.querySelectorAll('#tableBody tr');
+        const assets = [];
+
+        rows.forEach(row => {
+            const id = row.querySelector('.asset-id').value;
+            const geb = row.querySelector('.asset-geb').value;
+            const raum = row.querySelector('.asset-raum').value;
+
+            if(id) {
+                assets.push({
+                    geraete_id: id,
+                    gebaeude: geb,
+                    raum: raum
+                });
+            }
+        });
+
+        if(assets.length === 0) {
+            alert("Liste ist leer.");
+            return;
+        }
+
+        try {
+            const res = await fetch('/submit-all', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({header, assets})
+            });
+
+            const json = await res.json();
+            if(res.ok) {
+                alert(json.message);
+                location.reload();
+            } else {
+                alert("Fehler!");
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Verbindungsfehler");
+        }
+    }
+
+    window.onload = addRow;
+</script>
+<div class="text-center mt-5 mb-4">
+    <small style="opacity: 0.1;">
+        &copy; 2026 IT-Verwaltung &nbsp;|&nbsp;
+        <a href="/admin" class="text-decoration-none text-reset" title="Admin Login">
+            <i class="bi bi-lock-fill"></i> Internal
+        </a>
+    </small>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+</body>
+</body>
+</html>

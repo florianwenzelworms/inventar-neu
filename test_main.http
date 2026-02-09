@@ -1,0 +1,49 @@
+### 1. Test: Ist die Seite erreichbar?
+GET http://127.0.0.1:8000/
+Accept: text/html
+
+### 2. Test: Daten senden (Happy Path)
+POST http://127.0.0.1:8000/submit-all
+Content-Type: application/json
+
+{
+  "header": {
+    "name": "Max Mustermann",
+    "bereich": "Verwaltung",
+    "abteilung": "Hauptamt"
+  },
+  "assets": [
+    {
+      "geraete_id": "PC-001",
+      "geraete_typ": "PC",
+      "gebaeude": "Rathaus",
+      "raum": "101"
+    },
+    {
+      "geraete_id": "MON-002",
+      "geraete_typ": "Monitor",
+      "gebaeude": "Rathaus",
+      "raum": "101"
+    }
+  ]
+}
+
+### 3. Test: Validierung prüfen (Fehler erwartet, da ID fehlt)
+POST http://127.0.0.1:8000/submit-all
+Content-Type: application/json
+
+{
+  "header": {
+    "name": "Fehler Test",
+    "bereich": "IT",
+    "abteilung": "Test"
+  },
+  "assets": [
+    {
+      "geraete_id": "",
+      "geraete_typ": "PC",
+      "gebaeude": "Bunker",
+      "raum": "-1"
+    }
+  ]
+}
