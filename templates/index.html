@@ -8,15 +8,42 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 
     <style>
-        .ts-wrapper.form-select { padding: 0; border: none; }
-        .ts-control { border-radius: 0; border: 1px solid #dee2e6; }
-        /* Damit der Footer nicht über dem Content schwebt */
-        body { position: relative; min-height: 100vh; padding-bottom: 60px; }
+        .ts-wrapper.form-select {
+            padding: 0;
+            border: none;
+        }
+
+        .ts-control {
+            border-radius: 0;
+            border: 1px solid #dee2e6;
+        }
+
+        body {
+            position: relative;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* Bilder im Modal hübsch machen */
+        #helpContentBody img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="bg-light">
     <div class="container mt-4 pb-5">
-        <h2 class="mb-4">Geräte-Inventur</h2>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Geräte-Inventur</h2>
+            <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#infoModal">
+                <i class="bi bi-question-circle-fill"></i> Hilfe & Anleitung
+            </button>
+        </div>
 
         <div class="card p-3 mb-4 shadow-sm">
             <div class="row g-3">
@@ -56,9 +83,59 @@
         </div>
     </div>
 
+    <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-info-circle"></i> Kurzanleitung</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body" id="helpContentBody">
+
+                    <h5 class="text-info">1. Wer sind Sie?</h5>
+                    <p>
+                        Bitte tragen Sie oben Ihren <strong>Namen</strong> und Ihre <strong>Abteilung</strong> ein.
+                        Ohne diese Angaben können wir die Geräte nicht zuordnen.
+                    </p>
+                    <hr>
+
+                    <h5 class="text-info">2. Geräte-IDs eingeben</h5>
+                    <p>Bitte geben Sie alle IDs der Geräte in Ihrer Abteilung an. Unsere IDs bestehen immer aus 6 Ziffern.</p>
+                    <p>Bei manchen Gerätetypen steht der Ziffernfolge noch ein Buchstabe voran, wie "C" bei Computern oder "D" bei Druckern.</p>
+
+                    <div class="text-center my-3">
+                        <img src="/static/code.jpg" alt="Beispiel Barcode" class="img-fluid border rounded shadow-sm" style="max-height: 200px;">
+                    </div>
+
+                    <ul>
+                        <li><strong>Geräte-ID:</strong> Die Ziffernfolge (bitte genau abtippen/scannen).</li>
+                        <li><strong>Gebäude:</strong> Tippen Sie den Namen (z.B. "Rat..") und wählen Sie ihn aus der Liste.</li>
+                        <li><strong>Raum:</strong> Die Raumnummer.</li>
+                    </ul>
+
+                    <div class="alert alert-secondary mt-3">
+                        <i class="bi bi-lightbulb-fill text-warning"></i> <strong>Automatisch Ausfüllen:</strong><br>
+                        Wenn Sie eine neue Zeile hinzufügen, werden Gebäude und Raum automatisch von der vorherigen Zeile
+                        übernommen. Sie müssen es nicht jedes Mal neu tippen!
+                    </div>
+                    <hr>
+
+                    <h5 class="text-info">3. Fertig?</h5>
+                    <p>Wenn die Liste vollständig ist, klicken Sie bitte unten auf den grünen Button <strong>"Abschließen & Senden"</strong>.</p>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Verstanden</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="text-center mt-5 mb-4" style="opacity: 0.2;">
         <small>
-            &copy; 2026 IT-Verwaltung &nbsp;|&nbsp;
+            &copy; 2026 - 1.05 EDV &nbsp;|&nbsp;
             <a href="/admin" class="text-decoration-none text-reset" title="Admin Login">
                 <i class="bi bi-lock-fill"></i> Internal
             </a>
@@ -71,6 +148,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
     <script>
+        // WICHTIG: Das hier muss in einer Zeile stehen, sonst bricht JS wegen Jinja2 Syntax
         const buildings = {{ gebaeude_liste | tojson }};
         const tsInstances = [];
 
@@ -89,11 +167,10 @@
             `;
             const wrapper = document.createElement('div');
             wrapper.innerHTML = toastHtml;
-            const newToast = wrapper.firstElementChild;
-            container.appendChild(newToast);
-            const bsToast = new bootstrap.Toast(newToast, { delay: 3000 });
+            container.appendChild(wrapper.firstElementChild);
+            const bsToast = new bootstrap.Toast(wrapper.firstElementChild, {delay: 3000});
             bsToast.show();
-            newToast.addEventListener('hidden.bs.toast', () => newToast.remove());
+            wrapper.firstElementChild.addEventListener('hidden.bs.toast', () => wrapper.firstElementChild.remove());
         }
 
         // --- ROW LOGIK ---
@@ -123,7 +200,9 @@
                 </td>
             `;
 
-            tr.querySelector('.remove-btn').onclick = function() { tr.remove(); };
+            tr.querySelector('.remove-btn').onclick = function () {
+                tr.remove();
+            };
             tbody.appendChild(tr);
 
             // Tom Select Init
@@ -135,7 +214,7 @@
                 items: [lastGeb],
                 create: false,
                 maxItems: 1,
-                sortField: { field: "text", direction: "asc" },
+                sortField: {field: "text", direction: "asc"},
                 plugins: ['dropdown_input'],
             });
             tsInstances.push(ts);
@@ -143,12 +222,12 @@
             // Fokus setzen
             setTimeout(() => {
                 const inputs = tr.querySelectorAll('input');
-                if(inputs.length > 0) inputs[0].focus();
+                if (inputs.length > 0) inputs[0].focus();
             }, 50);
         }
 
         // Enter Key Support
-        document.getElementById('tableBody').addEventListener('keydown', function(e) {
+        document.getElementById('tableBody').addEventListener('keydown', function (e) {
             if (e.target.classList.contains('asset-raum') && e.key === 'Enter') {
                 e.preventDefault();
                 addRow();
@@ -162,7 +241,7 @@
                 abteilung: document.getElementById('h_abteilung').value
             };
 
-            if(!header.name || !header.abteilung) {
+            if (!header.name || !header.abteilung) {
                 showToast("Bitte Name und Abteilung angeben!", 'error');
                 return;
             }
@@ -175,12 +254,12 @@
                 const geb = row.querySelector('.asset-geb').value;
                 const raum = row.querySelector('.asset-raum').value;
 
-                if(id) {
-                    assets.push({ geraete_id: id, gebaeude: geb, raum: raum });
+                if (id) {
+                    assets.push({geraete_id: id, gebaeude: geb, raum: raum});
                 }
             });
 
-            if(assets.length === 0) {
+            if (assets.length === 0) {
                 showToast("Liste ist leer.", 'error');
                 return;
             }
@@ -193,13 +272,13 @@
                 });
 
                 const json = await res.json();
-                if(res.ok) {
+                if (res.ok) {
                     showToast(json.message, 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     showToast("Fehler beim Speichern!", 'error');
                 }
-            } catch(e) {
+            } catch (e) {
                 showToast("Verbindungsfehler", 'error');
             }
         }
