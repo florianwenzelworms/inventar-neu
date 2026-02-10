@@ -33,257 +33,473 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
+        /* Accordion Styling für History */
+        .accordion-button:not(.collapsed) {
+            background-color: #e7f1ff;
+            color: #0c63e4;
+        }
+
+        .history-details-table {
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body class="bg-light">
-    <div class="container mt-4 pb-5">
+<div class="container mt-4 pb-5">
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Geräte-Inventur</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Geräte-Inventur</h2>
+        <div>
+            <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#historyModal"
+                    onclick="renderHistory()">
+                <i class="bi bi-clock-history"></i> Meine Einträge
+            </button>
             <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#infoModal">
                 <i class="bi bi-question-circle-fill"></i> Hilfe & Anleitung
             </button>
         </div>
+    </div>
 
-        <div class="card p-3 mb-4 shadow-sm">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Name (Verantwortlicher)</label>
-                    <input type="text" id="h_name" class="form-control" placeholder="Max Mustermann">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Abteilung</label>
-                    <input type="text" id="h_abteilung" class="form-control" placeholder="z.B. IT / Hauptamt">
-                </div>
+    <div class="card p-3 mb-4 shadow-sm">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Name (Verantwortlicher)</label>
+                <input type="text" id="h_name" class="form-control" placeholder="Max Mustermann">
             </div>
-        </div>
-
-        <div class="card p-3 shadow-sm">
-            <table class="table align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width: 25%">Geräte-ID</th>
-                        <th style="width: 40%">Gebäude (Suche)</th>
-                        <th style="width: 30%">Raum</th>
-                        <th style="width: 5%"></th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
-
-            <div class="d-flex justify-content-between mt-2">
-                <button onclick="addRow()" class="btn btn-outline-primary">
-                    <i class="bi bi-plus-lg"></i> Zeile hinzufügen (Enter)
-                </button>
-                <button onclick="submitData()" class="btn btn-success px-5">
-                    Abschließen & Senden
-                </button>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Abteilung</label>
+                <input type="text" id="h_abteilung" class="form-control" placeholder="z.B. IT / Hauptamt">
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-info-circle"></i> Kurzanleitung</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="card p-3 shadow-sm">
+        <table class="table align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th style="width: 25%">Geräte-ID</th>
+                <th style="width: 40%">Gebäude (Suche)</th>
+                <th style="width: 30%">Raum</th>
+                <th style="width: 5%"></th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between mt-2">
+            <button onclick="addRow()" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> Zeile hinzufügen (Enter)
+            </button>
+            <button onclick="submitData()" class="btn btn-success px-5">
+                Abschließen & Senden
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-info-circle"></i> Kurzanleitung</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" id="helpContentBody">
+
+                <h5 class="text-info">1. Wer sind Sie?</h5>
+                <p>
+                    Bitte tragen Sie oben Ihren <strong>Namen</strong> und Ihre <strong>Abteilung</strong> ein.
+                    Ohne diese Angaben können wir die Geräte nicht zuordnen.
+                </p>
+                <hr>
+
+                <h5 class="text-info">2. Erfassung (Massenverarbeitung)</h5>
+                <p>
+                    Sie können (und sollen) <strong>mehrere Räume und Gebäude in einer einzigen Liste</strong> erfassen.
+                    Sie müssen nicht nach jedem Raum "Abschließen" drücken. Gehen Sie einfach von Raum zu Raum, erfassen
+                    Sie alles in einer langen Liste und senden Sie erst ganz zum Schluss.
+                </p>
+
+                <div class="text-center my-3">
+                    <img src="/static/code.jpg" alt="Beispiel Barcode" class="img-fluid border rounded shadow-sm"
+                         style="max-height: 200px;">
                 </div>
 
-                <div class="modal-body" id="helpContentBody">
+                <ul>
+                    <li><strong>Geräte-ID:</strong> Die Ziffernfolge (6-stellig, ggf. mit Buchstabe).</li>
+                    <li><strong>Gebäude:</strong> Tippen Sie den Namen (z.B. "Rat..") und wählen Sie ihn aus der Liste.
+                    </li>
+                    <li><strong>Raum:</strong> Die Raumnummer.</li>
+                </ul>
 
-                    <h5 class="text-info">1. Wer sind Sie?</h5>
-                    <p>
-                        Bitte tragen Sie oben Ihren <strong>Namen</strong> und Ihre <strong>Abteilung</strong> ein.
-                        Ohne diese Angaben können wir die Geräte nicht zuordnen.
-                    </p>
-                    <hr>
-
-                    <h5 class="text-info">2. Geräte-IDs eingeben</h5>
-                    <p>Bitte geben Sie alle IDs der Geräte in Ihrer Abteilung an. Unsere IDs bestehen immer aus 6 Ziffern.</p>
-                    <p>Bei manchen Gerätetypen steht der Ziffernfolge noch ein Buchstabe voran, wie "C" bei Computern oder "D" bei Druckern.</p>
-
-                    <div class="text-center my-3">
-                        <img src="/static/code.jpg" alt="Beispiel Barcode" class="img-fluid border rounded shadow-sm" style="max-height: 200px;">
-                    </div>
-
-                    <ul>
-                        <li><strong>Geräte-ID:</strong> Die Ziffernfolge (bitte genau abtippen/scannen).</li>
-                        <li><strong>Gebäude:</strong> Tippen Sie den Namen (z.B. "Rat..") und wählen Sie ihn aus der Liste.</li>
-                        <li><strong>Raum:</strong> Die Raumnummer.</li>
-                    </ul>
-
-                    <div class="alert alert-secondary mt-3">
-                        <i class="bi bi-lightbulb-fill text-warning"></i> <strong>Automatisch Ausfüllen:</strong><br>
-                        Wenn Sie eine neue Zeile hinzufügen, werden Gebäude und Raum automatisch von der vorherigen Zeile
-                        übernommen. Sie müssen es nicht jedes Mal neu tippen!
-                    </div>
-                    <hr>
-
-                    <h5 class="text-info">3. Fertig?</h5>
-                    <p>Wenn die Liste vollständig ist, klicken Sie bitte unten auf den grünen Button <strong>"Abschließen & Senden"</strong>.</p>
-
+                <div class="alert alert-secondary mt-3">
+                    <i class="bi bi-lightbulb-fill text-warning"></i> <strong>Automatisch Ausfüllen &
+                    Sicherheit:</strong><br>
+                    1. Wenn Sie eine neue Zeile hinzufügen, werden Gebäude und Raum automatisch von der vorherigen Zeile
+                    übernommen.<br>
+                    2. Ihre Eingaben werden automatisch im Browser gespeichert. Falls Sie die Seite versehentlich neu
+                    laden, sind Ihre Daten noch da!
                 </div>
+                <hr>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Verstanden</button>
-                </div>
+                <h5 class="text-info">3. Fertig?</h5>
+                <p>Erst wenn die Liste vollständig ist (z.B. ganze Abteilung erfasst), klicken Sie bitte unten auf den
+                    grünen Button <strong>"Abschließen & Senden"</strong>.</p>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Verstanden</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="text-center mt-5 mb-4" style="opacity: 0.2;">
-        <small>
-            &copy; 2026 - 1.05 EDV &nbsp;|&nbsp;
-            <a href="/admin" class="text-decoration-none text-reset" title="Admin Login">
-                <i class="bi bi-lock-fill"></i> Internal
-            </a>
-        </small>
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clock-history"></i> Meine Übermittlungen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Dies ist eine Liste der von <strong>diesem Browser</strong> gesendeten
+                    Daten.</p>
+
+                <div class="accordion" id="historyAccordion"></div>
+
+                <div id="historyEmptyMsg" class="text-center text-muted mt-3 d-none">
+                    Noch keine Einträge gesendet.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">Verlauf löschen</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 11"></div>
+<div class="text-center mt-5 mb-4" style="opacity: 0.2;">
+    <small>
+        &copy; 2026 - 1.05 EDV &nbsp;|&nbsp;
+        <a href="/admin" class="text-decoration-none text-reset" title="Admin Login">
+            <i class="bi bi-lock-fill"></i> Internal
+        </a>
+    </small>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 11"></div>
 
-    <script>
-        // WICHTIG: Das hier muss in einer Zeile stehen, sonst bricht JS wegen Jinja2 Syntax
-        const buildings = {{ gebaeude_liste | tojson }};
-        const tsInstances = [];
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
-        // --- TOAST FUNKTION ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const bgClass = type === 'error' ? 'text-bg-danger' : 'text-bg-success';
+<script>
+    // Gebäude Liste aus Backend
+    const buildings = {{gebaeude_liste | tojson}};
+    const tsInstances = [];
 
-            const toastHtml = `
-                <div class="toast align-items-center ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">${message}</div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
+    // --- TOAST FUNKTION ---
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const bgClass = type === 'error' ? 'text-bg-danger' : type === 'info' ? 'text-bg-primary' : 'text-bg-success';
+
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center ${bgClass} border-0`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+
+        toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             `;
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = toastHtml;
-            container.appendChild(wrapper.firstElementChild);
-            const bsToast = new bootstrap.Toast(wrapper.firstElementChild, {delay: 3000});
-            bsToast.show();
-            wrapper.firstElementChild.addEventListener('hidden.bs.toast', () => wrapper.firstElementChild.remove());
+
+        container.appendChild(toastEl);
+        const bsToast = new bootstrap.Toast(toastEl, {delay: 3000});
+        bsToast.show();
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
+    }
+
+    // --- LOCAL STORAGE: AUTO SAVE ---
+    function saveState() {
+        const header = {
+            name: document.getElementById('h_name').value,
+            abteilung: document.getElementById('h_abteilung').value
+        };
+        const rows = [];
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const idEl = row.querySelector('.asset-id');
+            if (idEl) {
+                rows.push({
+                    id: idEl.value,
+                    geb: row.querySelector('.asset-geb').value,
+                    raum: row.querySelector('.asset-raum').value
+                });
+            }
+        });
+        localStorage.setItem('inventur_draft', JSON.stringify({header, rows}));
+    }
+
+    // --- LOCAL STORAGE: RESTORE ---
+    function loadState() {
+        const draft = localStorage.getItem('inventur_draft');
+        if (!draft) return false;
+
+        try {
+            const data = JSON.parse(draft);
+            if (data.header) {
+                document.getElementById('h_name').value = data.header.name || "";
+                document.getElementById('h_abteilung').value = data.header.abteilung || "";
+            }
+            if (data.rows && data.rows.length > 0) {
+                data.rows.forEach(rowData => addRow(rowData));
+                return true;
+            }
+        } catch (e) {
+            console.error("Fehler beim Laden des Entwurfs", e);
+            localStorage.removeItem('inventur_draft');
+        }
+        return false;
+    }
+
+    // --- LOCAL STORAGE: HISTORY ---
+    // Speichert jetzt das komplette Array (assets) und nicht nur die Anzahl
+    function addToHistory(assets) {
+        const name = document.getElementById('h_name').value;
+        const abt = document.getElementById('h_abteilung').value;
+
+        const entry = {
+            date: new Date().toISOString(),
+            name: name,
+            abteilung: abt,
+            count: assets.length,
+            assets: assets // Detail-Daten speichern
+        };
+
+        let history = JSON.parse(localStorage.getItem('inventur_history') || "[]");
+        history.unshift(entry); // Neuester oben
+        if (history.length > 20) history.pop(); // Max 20 behalten
+        localStorage.setItem('inventur_history', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const container = document.getElementById('historyAccordion');
+        const emptyMsg = document.getElementById('historyEmptyMsg');
+        const history = JSON.parse(localStorage.getItem('inventur_history') || "[]");
+
+        container.innerHTML = "";
+
+        if (history.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            return;
+        } else {
+            emptyMsg.classList.add('d-none');
         }
 
-        // --- ROW LOGIK ---
-        function addRow() {
-            const tbody = document.getElementById('tableBody');
+        history.forEach((h, index) => {
+            const date = new Date(h.date).toLocaleString();
+            const collapseId = `collapseHistory${index}`;
+            const headingId = `headingHistory${index}`;
 
-            // Sticky Logic
-            let lastGeb = "";
-            let lastRaum = "";
+            // Details bauen (Tabelle)
+            let detailsHtml = '<div class="text-muted fst-italic p-2">Keine Details verfügbar (Altbestand)</div>';
 
+            if (h.assets && Array.isArray(h.assets)) {
+                detailsHtml = `
+                        <table class="table table-sm table-bordered history-details-table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Geräte-ID</th>
+                                    <th>Gebäude</th>
+                                    <th>Raum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                h.assets.forEach(asset => {
+                    detailsHtml += `
+                            <tr>
+                                <td class="fw-bold text-primary">${asset.geraete_id}</td>
+                                <td>${asset.gebaeude}</td>
+                                <td>${asset.raum}</td>
+                            </tr>
+                        `;
+                });
+                detailsHtml += '</tbody></table>';
+            }
+
+            // Accordion Item HTML
+            const itemHtml = `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="${headingId}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                                <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                                    <span>
+                                        <strong>${date}</strong><br>
+                                        <small class="text-muted">${h.name} (${h.abteilung})</small>
+                                    </span>
+                                    <span class="badge bg-primary rounded-pill">${h.count} Geräte</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="${headingId}" data-bs-parent="#historyAccordion">
+                            <div class="accordion-body p-0">
+                                ${detailsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            container.innerHTML += itemHtml;
+        });
+    }
+
+    function clearHistory() {
+        if (confirm("Verlauf wirklich löschen?")) {
+            localStorage.removeItem('inventur_history');
+            renderHistory();
+        }
+    }
+
+    // --- ADD ROW ---
+    function addRow(rowData = null) {
+        const tbody = document.getElementById('tableBody');
+        let defaultGeb = "", defaultRaum = "", defaultId = "";
+
+        if (rowData) {
+            defaultId = rowData.id || "";
+            defaultGeb = rowData.geb || "";
+            defaultRaum = rowData.raum || "";
+        } else {
             const rows = tbody.querySelectorAll('tr');
             if (rows.length > 0) {
                 const lastRow = rows[rows.length - 1];
-                lastGeb = lastRow.querySelector('.asset-geb').value;
-                lastRaum = lastRow.querySelector('.asset-raum').value;
+                const lastGebEl = lastRow.querySelector('.asset-geb');
+                const lastRaumEl = lastRow.querySelector('.asset-raum');
+                if (lastGebEl) defaultGeb = lastGebEl.value;
+                if (lastRaumEl) defaultRaum = lastRaumEl.value;
             }
-            if (!lastGeb && buildings.length > 0) lastGeb = buildings[0];
+            if (!defaultGeb && buildings.length > 0) defaultGeb = buildings[0];
+        }
 
-            // Row HTML
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="text" class="form-control asset-id" placeholder="ID..." autofocus></td>
-                <td><select class="asset-geb" placeholder="Gebäude wählen..."></select></td>
-                <td><input type="text" class="form-control asset-raum" placeholder="Raum..." value="${lastRaum}"></td>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+                <td><input type="text" class="form-control asset-id" placeholder="ID..." value="${defaultId}"></td>
+                <td><select class="asset-geb"></select></td>
+                <td><input type="text" class="form-control asset-raum" placeholder="Raum..." value="${defaultRaum}"></td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-danger border-0 remove-btn"><i class="bi bi-trash"></i></button>
                 </td>
             `;
 
-            tr.querySelector('.remove-btn').onclick = function () {
-                tr.remove();
-            };
-            tbody.appendChild(tr);
+        tr.querySelector('.remove-btn').onclick = function () {
+            tr.remove();
+            saveState();
+        };
+        tr.querySelectorAll('input').forEach(input => input.addEventListener('input', saveState));
 
-            // Tom Select Init
-            const selectEl = tr.querySelector('.asset-geb');
-            const optionsList = buildings.map(b => ({value: b, text: b}));
+        tbody.appendChild(tr);
 
-            const ts = new TomSelect(selectEl, {
-                options: optionsList,
-                items: [lastGeb],
-                create: false,
-                maxItems: 1,
-                sortField: {field: "text", direction: "asc"},
-                plugins: ['dropdown_input'],
-            });
-            tsInstances.push(ts);
+        const ts = new TomSelect(tr.querySelector('.asset-geb'), {
+            options: buildings.map(b => ({value: b, text: b})),
+            items: [defaultGeb],
+            create: false,
+            maxItems: 1,
+            plugins: ['dropdown_input'],
+            onChange: saveState
+        });
+        tsInstances.push(ts);
 
-            // Fokus setzen
+        if (!rowData) {
             setTimeout(() => {
                 const inputs = tr.querySelectorAll('input');
                 if (inputs.length > 0) inputs[0].focus();
             }, 50);
+            saveState();
+        }
+    }
+
+    // Enter-Key Listener
+    document.getElementById('tableBody').addEventListener('keydown', function (e) {
+        if (e.target.classList.contains('asset-raum') && e.key === 'Enter') {
+            e.preventDefault();
+            addRow();
+        }
+    });
+
+    document.getElementById('h_name').addEventListener('input', saveState);
+    document.getElementById('h_abteilung').addEventListener('input', saveState);
+
+    // --- SUBMIT ---
+    async function submitData() {
+        const header = {
+            name: document.getElementById('h_name').value,
+            abteilung: document.getElementById('h_abteilung').value
+        };
+        if (!header.name || !header.abteilung) {
+            showToast("Bitte Name und Abteilung angeben!", 'error');
+            return;
         }
 
-        // Enter Key Support
-        document.getElementById('tableBody').addEventListener('keydown', function (e) {
-            if (e.target.classList.contains('asset-raum') && e.key === 'Enter') {
-                e.preventDefault();
-                addRow();
-            }
+        const rows = document.querySelectorAll('#tableBody tr');
+        const assets = [];
+        rows.forEach(row => {
+            const id = row.querySelector('.asset-id').value;
+            if (id) assets.push({
+                geraete_id: id,
+                gebaeude: row.querySelector('.asset-geb').value,
+                raum: row.querySelector('.asset-raum').value
+            });
         });
 
-        // --- SUBMIT ---
-        async function submitData() {
-            const header = {
-                name: document.getElementById('h_name').value,
-                abteilung: document.getElementById('h_abteilung').value
-            };
-
-            if (!header.name || !header.abteilung) {
-                showToast("Bitte Name und Abteilung angeben!", 'error');
-                return;
-            }
-
-            const rows = document.querySelectorAll('#tableBody tr');
-            const assets = [];
-
-            rows.forEach(row => {
-                const id = row.querySelector('.asset-id').value;
-                const geb = row.querySelector('.asset-geb').value;
-                const raum = row.querySelector('.asset-raum').value;
-
-                if (id) {
-                    assets.push({geraete_id: id, gebaeude: geb, raum: raum});
-                }
-            });
-
-            if (assets.length === 0) {
-                showToast("Liste ist leer.", 'error');
-                return;
-            }
-
-            try {
-                const res = await fetch('/submit-all', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({header, assets})
-                });
-
-                const json = await res.json();
-                if (res.ok) {
-                    showToast(json.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast("Fehler beim Speichern!", 'error');
-                }
-            } catch (e) {
-                showToast("Verbindungsfehler", 'error');
-            }
+        if (assets.length === 0) {
+            showToast("Liste ist leer.", 'error');
+            return;
         }
 
-        window.onload = addRow;
-    </script>
+        try {
+            const res = await fetch('/submit-all', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({header, assets})
+            });
+            const json = await res.json();
+
+            if (res.ok) {
+                showToast(json.message, 'success');
+
+                // 1. History speichern (JETZT MIT ASSETS ARRAY)
+                addToHistory(assets);
+
+                // 2. Draft löschen
+                localStorage.removeItem('inventur_draft');
+
+                // 3. Reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+
+            } else {
+                showToast("Fehler beim Speichern!", 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Verbindungsfehler", 'error');
+        }
+    }
+
+    window.onload = function () {
+        const restored = loadState();
+        if (!restored) addRow();
+        else showToast("Entwurf wiederhergestellt", 'info');
+    };
+</script>
 </body>
 </html>
